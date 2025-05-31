@@ -1,5 +1,6 @@
 import sys
 import os
+import random
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
     QFileDialog, QScrollArea, QFrame
@@ -32,6 +33,12 @@ class ImageViewer(QWidget):
         self.open_folder_btn.clicked.connect(self.open_folder)
         left_panel.addWidget(self.open_folder_btn)
 
+        # Додаємо кнопку "Випадкова картинка"
+        self.random_btn = QPushButton("Випадкова картинка")
+        self.random_btn.clicked.connect(self.show_random_image)
+        self.random_btn.setEnabled(False)
+        left_panel.addWidget(self.random_btn)
+
         # Список кнопок з прокруткою
         self.buttons_widget = QWidget()
         self.buttons_layout = QVBoxLayout(self.buttons_widget)
@@ -49,6 +56,8 @@ class ImageViewer(QWidget):
 
         main_layout.addLayout(left_panel, 2)
         main_layout.addWidget(self.image_label, 5)
+
+        self.current_image_path = None  # Додаємо змінну для збереження шляху
 
     def open_folder(self):
         folder = QFileDialog.getExistingDirectory(self, "Оберіть папку з картинками")
@@ -69,19 +78,29 @@ class ImageViewer(QWidget):
             btn.clicked.connect(lambda checked, p=img_rel_path: self.show_image(p))
             self.buttons_layout.insertWidget(self.buttons_layout.count() - 1, btn)
 
+        self.images = images  # Зберігаємо список для випадкового вибору
+        self.random_btn.setEnabled(bool(images))
+
     def show_image(self, rel_path):
         img_path = os.path.join(self.folder, rel_path)
         pixmap = QPixmap(img_path)
         if not pixmap.isNull():
             scaled = pixmap.scaled(self.image_label.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
             self.image_label.setPixmap(scaled)
+            self.current_image_path = rel_path  # Запам'ятовуємо шлях
         else:
             self.image_label.setText("Не вдалося завантажити картинку")
+            self.current_image_path = None
+
+    def show_random_image(self):
+        if hasattr(self, 'images') and self.images:
+            rel_path = random.choice(self.images)
+            self.show_image(rel_path)
 
     def resizeEvent(self, event):
         # Оновити картинку при зміні розміру
-        if self.image_label.pixmap():
-            self.show_image(self.image_label.pixmap().cacheKey())
+        if self.current_image_path:
+            self.show_image(self.current_image_path)
         super().resizeEvent(event)
 
 if __name__ == "__main__":
